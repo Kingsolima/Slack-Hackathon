@@ -1066,3 +1066,130 @@ Read-only service account. All queries use parameterized inputs to prevent SQL i
 | 1:50–2:20 | Admin DM appears. Read the counterfactual aloud: *"847 customer emails would have been exfiltrated."* Show approve and deny buttons. Click deny. |
 | 2:20–2:40 | `/firewall log` — full color-coded trail. Click the blocked entry. Show all six layer scores. *"Full forensics. Instant compliance evidence."* |
 | 2:40–3:00 | Show the behavioral baseline graph with the anomaly spike at 2:14pm. Closing line: *"Every AI agent in your Slack is a potential attack surface. Agent Firewall means powerful agents and safe data — at the same time."* |
+
+# Agent Firewall — Side Notes (VERY IMPORTANT TO CONSIDER)
+
+> Side notes on the two biggest execution risks for the 1-month build, and how to solve them.
+> The vision doesn't change — these are sequencing and design decisions, not feature cuts to the idea.
+
+---
+
+## Problem 1 — Scope (you'll build ten things halfway and integrate none)
+
+### Context: what the "layers" actually are
+
+There are two different things people call "layers." Keep them separate.
+
+**(a) Architectural layers (Layers 1-7) — where data flows, top to bottom. These do NOT get cut:**
+
+1. **Slack workspace** — where messages (legit and malicious) originate.
+2. **Slack agent** — the bot that reads a message and prepares a tool call.
+3. **MCP proxy (Person 1)** — intercepts every tool call before it runs.
+4. **AI reasoning engine (Person 2)** — the pipeline that scores how dangerous the call is.
+5. **Decision routing** — proxy executes / holds / blocks based on the score.
+6. **Visibility (Person 3)** — slash commands, conspiracy detection, reports.
+7. **Admin interface (Person 4)** — Slack DM with approve/deny buttons.
+
+Every version of the product has all seven, even if some are thin.
+
+**(b) Feature components inside those layers — THIS is what you prioritize and cut (~20 of them).**
+
+Sort every component into three build buckets:
+
+- **SPINE** — the minimum set that makes the demo (Flow 2, the injection block) actually work.
+- **DEPTH** — real technical weight; build only once the spine is solid.
+- **GARNISH** — impressive-sounding, low demo ROI; stub/cut and put on a "future work" slide.
+
+### Step 1 — Declare the SPINE = Flow 2, end to end
+
+```
+proxy intercepts call
+  -> extract/retrieve intent (1 Claude call)
+  -> detect injection: regex + 1 Claude call + source trust
+  -> drift score: 1 Claude call (intent vs tool call)
+  -> combine 3 signals -> risk score
+  -> BLOCK + write audit row + DM admin with counterfactual
+  -> /firewall log shows the red entry
+```
+
+That's 4 of Person 2's 10 components (intent, injection, drift, risk combiner) + counterfactual
++ audit log + one slash command. If only this works flawlessly, you have a winning demo.
+
+### Step 2 — Sort all ~20 components into buckets
+
+| Bucket | Components | Rule |
+|---|---|---|
+| **SPINE (must work)** | proxy interception, intent extraction, injection (regex + Claude + trust), drift (Claude only), risk combiner, counterfactual, audit log, `/firewall log` | Build first. Nobody starts DEPTH until this is integrated end-to-end. |
+| **DEPTH (if spine done ~Day 12)** | anomaly detector, `/firewall status`, HOLD flow + approve/deny buttons, eval harness | Each independently shippable. Add one at a time. Pull the eval harness forward — cheap, and it's your demo-day proof of correctness. |
+| **GARNISH (cut/fake -> "future work")** | conspiracy detection, threat intel / RTS, encrypted token vault + detokenization + leakage checker, embedding-based drift, weekly report, compliance export | Stub or skip. Mention as roadmap. |
+
+### Step 3 — Sequence to force integration early
+
+Failure mode: four people build in isolation, integrate in Week 3, nothing fits. Prevent it:
+
+- **Day 1:** lock the proxy<->pipeline JSON contract (input/output schemas). Do this literally first.
+- **Day 1:** Person 1 builds a **mock pipeline** returning hardcoded scores -> the proxy -> DM -> audit -> slash-command path can be built and tested *before any AI exists*.
+- **Day 2-3:** thin vertical slice — hardcoded tool call goes proxy -> mock -> BLOCK -> DM -> audit row -> `/firewall log` shows it. **The whole spine runs with a fake brain.**
+- **Then:** Person 2 swaps the mock for real components one at a time. Each swap is small and testable against an already-working pipe.
+
+> Key move: get the plumbing working end-to-end with a dummy brain by Day 3, then upgrade the
+> brain. You always have a demoable system; you never face a big-bang integration.
+
+### Step 4 — Pre-commit to cut lines (decide now, not in Week 3)
+
+- Spine not integrated by **Day 12** -> cut all of DEPTH, polish the spine.
+- Spine + 1 DEPTH item by **Day 18** -> freeze features, record demo.
+- **Record the demo video on a fixed date no matter what.** Technical people always want one more day; the video gets made with what exists.
+
+---
+
+## Problem 2 — The anomaly detector is "cold" during the demo
+
+### Context: what it is and why cold-start breaks it
+
+One component inside Person 2's pipeline (Layer 4), separate from injection and drift.
+
+- **Job:** catch attacks that look semantically fine but are behaviorally weird — an agent doing something it's never done, or a normal thing at 100x scale. (Injection/drift catch "malicious instruction"; anomaly catches "abnormal behavior for *this* agent.")
+- **Baseline:** per-agent profile of normal behavior — calls/hour, tool mix, data volume, trigger sources, call sequences.
+- **Z-score:** how many std-devs a call is from baseline. `z = |observed - mean| / std_dev`. z=3 unusual; z=30 (never-seen tool) off the charts. High z -> high anomaly score.
+- **Welford's algorithm:** updates running mean + std-dev after each call without storing all history. Keeps the baseline live and cheap.
+- **Cold start (the problem):** a baseline needs data. Phases: learning (0-50 calls, detection OFF), warming (50-200, relaxed), active (200+, full). A fresh demo workspace has zero history -> every agent sits in learning phase -> the most ML-heavy component is OFF exactly when judges watch, contributing 0 to the demo attack's score.
+
+### Solution A — Seed a real baseline before the demo (do regardless)
+
+Don't fake the output — fake the history, then let real code compute real stats.
+
+1. Generate ~300 realistic tool calls for the support agent (mostly `database_read`, normal data volumes, internal triggers, normal rate, natural variance).
+2. Run them through the **real** `update_baseline` / Welford function so `agent_baselines` holds a genuine mean + std-dev.
+3. The demo's `http_post` of 847 emails now produces a **real** z-score (unseen tool -> huge z; volume 400x normal -> huge z) -> real ~97/100.
+
+Numbers are real; only the history is synthetic. Also makes `/firewall log` look production-aged.
+
+> Detail: the **audit log** and **agent_baselines** are different tables. Seeding the audit log
+> makes `/firewall log` look lived-in, but if you don't also seed the baseline the anomaly score
+> stays cold. Seed BOTH.
+
+### Solution B — Make the architecture degrade safely (real correctness)
+
+- **Learning phase:** anomaly detector returns neutral/0 contribution, and the **risk combiner reweights** — redistribute anomaly's 25% onto injection + drift.
+- Result: the demo attack still scores 90+ on **injection + drift alone**, and the override rule (injection > 90 -> always BLOCK) fires regardless.
+- **Never let the block depend on the anomaly score.** Anomaly is corroborating evidence that enriches the explanation, not load-bearing logic.
+
+### Solution C — Put cold-start in the demo narrative (optional flex)
+
+Demo the lifecycle on purpose: "brand-new agent in learning phase — anomaly off by design;
+now an established agent with 300 calls of baseline — the *same* malicious call lights up 97/100
+because it's never called `http_post` before." Turns the limitation into a sophistication signal.
+
+### Net design for Problem 2
+
+1. **Architecture:** risk combiner reweights when a signal is cold -> attack still blocks on injection + drift (B).
+2. **Demo:** seed a real 300-call baseline through the actual Welford code so anomaly genuinely fires (A).
+3. **Narrative:** optionally contrast cold vs. warm agent to flaunt the ML (C).
+
+---
+
+## TL;DR
+
+- **Problem 1:** The 7 architectural layers stay; triage the ~20 feature components into **SPINE / DEPTH / GARNISH**. Build the SPINE (Flow 2) end-to-end with a **mock brain by Day 3**, swap in real components one at a time, and pre-commit cut lines so scope can't grow.
+- **Problem 2:** The anomaly detector is off at demo time (cold start). Don't let the block depend on it (injection + drift already block), **reweight gracefully during cold start**, and **seed a real 300-call baseline through the actual Welford function** so it lights up for real.
