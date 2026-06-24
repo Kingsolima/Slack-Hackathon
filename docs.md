@@ -102,34 +102,34 @@ A fake "support request" DM actually contains hidden instructions to steal custo
 
 | Person | Role | Owns |
 |---|---|---|
-| **Person 1** | Backend Engineer | MCP Proxy + Core Infrastructure |
-| **Person 2** | AI Engineer | AI Security Reasoning Engine |
-| **Person 3** | Full-Stack Engineer | Visibility + Cross-Agent Intelligence |
-| **Person 4** | Non-Technical | Product, UX, and Submission |
+| **Ahmed** | Backend Engineer | MCP Proxy + Core Infrastructure |
+| **Omar** | AI Engineer | AI Security Reasoning Engine |
+| **Zaid** | Full-Stack Engineer | Visibility + Cross-Agent Intelligence |
+| **Kezazz** | Non-Technical | Product, UX, and Submission |
 
 ---
 
-### Person 1 — MCP Proxy + Core Infrastructure
+### Ahmed — MCP Proxy + Core Infrastructure
 **Role: Backend Engineer**
 **Owns: The foundation everything else runs on**
 
-Person 1 is the most critical dependency on the team. Nobody else can build anything meaningful until Person 1 has the proxy intercepting calls and the Supabase project provisioned. A day of delay from Person 1 cascades into a day of delay for everyone else.
+Ahmed is the most critical dependency on the team. Nobody else can build anything meaningful until Ahmed has the proxy intercepting calls and the Supabase project provisioned. A day of delay from Ahmed cascades into a day of delay for everyone else.
 
 #### MCP Proxy Server
 
 - Build a custom Node.js server using the MCP SDK that intercepts every agent tool call before it executes
 - The proxy must be transparent — legitimate calls pass through with under **100ms** added latency
 - Handle all MCP protocol details — tool call parsing, response formatting, protocol versioning
-- Implement **fail-safe logic** — if Person 2's analysis pipeline times out or crashes, the proxy defaults to BLOCK, never to ALLOW
+- Implement **fail-safe logic** — if Omar's analysis pipeline times out or crashes, the proxy defaults to BLOCK, never to ALLOW
 - Handle concurrent calls — multiple agents making simultaneous tool calls must be processed independently without race conditions
 
 #### Integration Layer
 
-- Define and lock the input/output contract between the proxy and Person 2's Python pipeline on **Day 1 of Week 1** before anyone writes analysis code
-- Build a mock Person 2 endpoint from Day 1 that returns hardcoded scores so Person 1 can test the full proxy flow independently
-- HTTP retry logic — if Person 2's endpoint is slow, retry once with a 2-second timeout before defaulting to block
+- Define and lock the input/output contract between the proxy and Omar's Python pipeline on **Day 1 of Week 1** before anyone writes analysis code
+- Build a mock Omar endpoint from Day 1 that returns hardcoded scores so Ahmed can test the full proxy flow independently
+- HTTP retry logic — if Omar's endpoint is slow, retry once with a 2-second timeout before defaulting to block
 
-**Input schema the proxy sends to Person 2:**
+**Input schema the proxy sends to Omar:**
 ```json
 {
   "tool_name": "http_post",
@@ -144,7 +144,7 @@ Person 1 is the most critical dependency on the team. Nobody else can build anyt
 }
 ```
 
-**Output schema Person 2 returns to the proxy:**
+**Output schema Omar returns to the proxy:**
 ```json
 {
   "risk_score": 94.0,
@@ -166,7 +166,7 @@ Person 1 is the most critical dependency on the team. Nobody else can build anyt
 - Create the shared GitHub repository — main branch protected, feature branches required, PRs to merge
 - Set up Railway project — separate services for Node.js proxy and Python pipeline
 - Provision Supabase project — create database, generate API keys, share credentials securely
-- Create all database tables from Person 2 and Person 3 schemas
+- Create all database tables from Omar and Zaid schemas
 - Set up GitHub Actions CI pipeline — runs on every PR, blocks merge if tests fail
 - Manage all secrets — API keys, Supabase credentials, Claude API key, Slack signing secret — stored in Railway environment variables, never in code
 
@@ -184,19 +184,19 @@ Person 1 is the most critical dependency on the team. Nobody else can build anyt
 |---|---|
 | Day 1 | GitHub repo, Railway, Supabase provisioned, Slack app created, team has access to everything |
 | Day 2 | Proxy skeleton intercepts a hardcoded tool call and logs it to console |
-| Day 3 | Integration contract locked with Person 2, mock endpoint working, allow/hold/block routing working |
+| Day 3 | Integration contract locked with Omar, mock endpoint working, allow/hold/block routing working |
 | Day 4 | Supabase tables created, proxy logging every call to database |
 | Day 5 | First full team integration test |
 
-**Definition of done:** The proxy intercepts a real Slack agent tool call, calls Person 2's pipeline, receives a risk score, routes to the correct outcome, and logs the result to Supabase — all within 100ms of overhead added to the original call.
+**Definition of done:** The proxy intercepts a real Slack agent tool call, calls Omar's pipeline, receives a risk score, routes to the correct outcome, and logs the result to Supabase — all within 100ms of overhead added to the original call.
 
 ---
 
-### Person 2 — AI Security Reasoning Engine
+### Omar — AI Security Reasoning Engine
 **Role: AI/ML Engineer**
 **Owns: The intelligence that makes Firewall different from a rules engine**
 
-Person 2 builds the brain of the entire product. Ten interconnected components, multiple Claude API calls running in parallel, a full statistical anomaly detection system, a PII tokenization vault, and an evaluation framework to verify everything works reliably before demo day. The quality of Person 2's work determines whether the product wins or loses.
+Omar builds the brain of the entire product. Ten interconnected components, multiple Claude API calls running in parallel, a full statistical anomaly detection system, a PII tokenization vault, and an evaluation framework to verify everything works reliably before demo day. The quality of Omar's work determines whether the product wins or loses.
 
 #### 1. Tokenization Pipeline
 
@@ -398,7 +398,7 @@ class AuditRecord(BaseModel):
 
 #### Evaluation Framework
 
-Before demo day, Person 2 builds and passes a 30-case evaluation set:
+Before demo day, Omar builds and passes a 30-case evaluation set:
 
 | Category | Count | Pass Criteria |
 |---|---|---|
@@ -411,11 +411,11 @@ Before demo day, Person 2 builds and passes a 30-case evaluation set:
 
 ---
 
-### Person 3 — Visibility + Cross-Agent Intelligence
+### Zaid — Visibility + Cross-Agent Intelligence
 **Role: Full-Stack Engineer**
 **Owns: Everything that proves the system is working**
 
-Person 3 builds the observability layer — the features that turn Agent Firewall from a black box into a transparent, auditable security system. This is what judges interact with to verify the product works. Person 3 works largely independently once the Supabase schema is agreed — their features read from the audit log Person 2 writes and surface it through Slack commands.
+Zaid builds the observability layer — the features that turn Agent Firewall from a black box into a transparent, auditable security system. This is what judges interact with to verify the product works. Zaid works largely independently once the Supabase schema is agreed — their features read from the audit log Omar writes and surface it through Slack commands.
 
 #### Cross-Agent Conspiracy Detection
 
@@ -423,7 +423,7 @@ Person 3 builds the observability layer — the features that turn Agent Firewal
 - Build a directed graph using networkx — nodes are agents, edges represent data flows between them
 - Detect suspicious coordination: Agent A reads sensitive data → Agent B attempts external write within the same session window. Neither action individually triggers a block but the combination does
 - Compute conspiracy score based on: data overlap between agents, timing of coordinated actions, whether combined permissions exceed what any single agent should have
-- Feed conspiracy signal into Person 2's risk combiner as an additional input
+- Feed conspiracy signal into Omar's risk combiner as an additional input
 
 #### Firewall Log System
 
@@ -475,11 +475,11 @@ Scheduled using APScheduler, reads entirely from audit log table.
 
 ---
 
-### Person 4 — Product, UX, and Submission
+### Kezazz — Product, UX, and Submission
 **Role: Non-Technical**
 **Owns: Everything judges see before they watch the demo**
 
-Person 4's work determines the first impression. A technically perfect product presented poorly loses to a slightly weaker product presented clearly. Person 4 starts contributing Day 1 and never waits for technical work to be done.
+Kezazz's work determines the first impression. A technically perfect product presented poorly loses to a slightly weaker product presented clearly. Kezazz starts contributing Day 1 and never waits for technical work to be done.
 
 #### Admin DM Notification System
 
@@ -488,7 +488,7 @@ Block Kit JSON for the admin alert when a call is held or blocked:
 - Risk score displayed prominently with color indicator
 - Agent name and timestamp
 - Plain English description of what the agent attempted
-- Counterfactual text from Person 2 — *"847 customer emails would have been exported"*
+- Counterfactual text from Omar — *"847 customer emails would have been exported"*
 - Approve and deny buttons with confirmation dialogs
 - Link to full audit log entry
 
@@ -513,7 +513,7 @@ Message fires when Agent Firewall is first installed in a workspace. Explains in
 | Deliverable | Details |
 |---|---|
 | Devpost description | 500–800 words: problem, solution, how built, challenges, what's next |
-| Architecture diagram | Miro or Figma, reviewed by Person 1 and Person 2 for accuracy |
+| Architecture diagram | Miro or Figma, reviewed by Ahmed and Omar for accuracy |
 | Demo video | Loom or OBS, exactly 3 minutes, captions, 1080p export |
 | Social impact write-up | Scope of problem, who is exposed, what changes when Agent Firewall exists |
 | Sandbox access | slackhack@salesforce.com and testing@devpost.com added before deadline |
@@ -522,7 +522,7 @@ Message fires when Agent Firewall is first installed in a workspace. Explains in
 
 - 15-minute daily standup: what did you do yesterday, what are you doing today, what's blocking you
 - Task board in Notion or Linear — every task has an owner, due date, and status
-- **Calls time Wednesday of Week 3** for demo video recording — non-negotiable. Technical people will always want more time. Person 4's job is to record the video with what exists on that date.
+- **Calls time Wednesday of Week 3** for demo video recording — non-negotiable. Technical people will always want more time. Kezazz's job is to record the video with what exists on that date.
 
 **Definition of done:** Demo video recorded and uploaded. Submission write-up complete. Architecture diagram accurate. Sandbox accessible to judges. All Devpost fields completed before deadline.
 
@@ -548,13 +548,13 @@ The agent cannot tell the difference between these two situations on its own. Th
 
 The existing agent reads the incoming message and prepares a tool call — a structured request to execute a specific action with specific inputs. Without Agent Firewall, this executes immediately. The agent has no concept of whether the action is consistent with what the user originally intended.
 
-### Layer 3 — The MCP Proxy Server (Person 1)
+### Layer 3 — The MCP Proxy Server (Ahmed)
 
 Before the tool call executes, the MCP proxy intercepts it. This is the first and most critical layer of protection.
 
-The proxy packages the full context of the call — tool name, tool input, session ID, agent ID, trigger source, original message, workspace ID, and timestamp — and sends it to Person 2's AI reasoning engine via HTTP POST. There is a hard four-second timeout. If Person 2's pipeline crashes or times out, the proxy defaults to BLOCK. A broken analysis pipeline is treated as a high-risk signal, not a green light.
+The proxy packages the full context of the call — tool name, tool input, session ID, agent ID, trigger source, original message, workspace ID, and timestamp — and sends it to Omar's AI reasoning engine via HTTP POST. There is a hard four-second timeout. If Omar's pipeline crashes or times out, the proxy defaults to BLOCK. A broken analysis pipeline is treated as a high-risk signal, not a green light.
 
-### Layer 4 — The AI Reasoning Engine (Person 2)
+### Layer 4 — The AI Reasoning Engine (Omar)
 
 The brain of the system. A multi-stage analysis pipeline designed for both speed and depth — independent steps run in parallel, dependent steps run sequentially, completing in under three seconds.
 
@@ -592,13 +592,13 @@ The brain of the system. A multi-stage analysis pipeline designed for both speed
 | **HOLD** | Tool call suspended. Admin receives Slack DM with risk score, counterfactual, and approve/deny buttons. Executes if approved, cancelled if denied. Logged yellow with admin action. |
 | **BLOCK** | Tool call permanently cancelled before any data moves. Admin notified for awareness. Attacker receives no confirmation. Logged red. |
 
-### Layer 6 — Visibility Layer (Person 3)
+### Layer 6 — Visibility Layer (Zaid)
 
 Cross-agent conspiracy detection runs continuously, building a directed graph using networkx. When one agent reads sensitive data and another agent attempts an external write within the same session window, the coordination pattern is flagged even if neither agent individually triggered a block.
 
 The slash command layer surfaces everything in the audit log — `/firewall log` for the full color-coded trail, `/firewall status` for live system health, and an automated weekly threat report every Monday.
 
-### Layer 7 — Admin Interface (Person 4)
+### Layer 7 — Admin Interface (Kezazz)
 
 Built entirely in Slack using Block Kit — no external dashboard. When a call is held or blocked, the admin receives a structured DM with the risk score, what the agent attempted, what would have happened, and approve or deny buttons. Readable and actionable in under thirty seconds.
 
@@ -613,14 +613,14 @@ Slack Workspace
      ↓
 Slack Agent (prepares tool call)
      ↓
-MCP Proxy (intercepts — Person 1)
+MCP Proxy (intercepts — Ahmed)
      ↓
-AI Reasoning Engine (analyzes — Person 2)
+AI Reasoning Engine (analyzes — Omar)
      ↓
 Decision routed back to proxy (ALLOW / HOLD / BLOCK)
      ↓
-Visibility Layer (observes — Person 3)
-Admin Interface (notifies — Person 4)
+Visibility Layer (observes — Zaid)
+Admin Interface (notifies — Kezazz)
      ↓
 Supabase (persists everything)
 ```
@@ -816,31 +816,31 @@ CUSTOMER DATA EXPOSED: zero bytes
 
 | Category | Technology | Version | Purpose | Owner |
 |---|---|---|---|---|
-| Slack app framework | Slack Bolt | 3.x (Node.js) | Event handling, slash commands, button interactions, OAuth | Person 1 |
-| MCP proxy | Custom Node.js + Express | Node 20 LTS | Intercepts all agent tool calls before execution | Person 1 |
-| MCP protocol | Anthropic MCP SDK | Latest | Tool call parsing and protocol handling | Person 1 |
-| Hosting | Railway | — | Deploys all services, environment management | Person 1 |
-| CI/CD | GitHub Actions | — | Automated tests on every PR, blocks merge on failure | Person 1 |
-| Version control | GitHub | — | Shared repository, branching strategy, code review | Person 1 |
-| AI reasoning engine | Python | 3.11+ | Core analysis pipeline language | Person 2 |
-| LLM | Claude API (claude-sonnet-4-6) | Latest | Intent extraction, drift scoring, injection detection, counterfactual generation | Person 2 |
-| Structured output | Pydantic | v2 | Validates all Claude API responses into typed Python objects | Person 2 |
-| Async execution | Python asyncio | Built-in | Parallel pipeline execution, target under 3 seconds | Person 2 |
-| Vector embeddings | OpenAI text-embedding-3-small | Latest | Semantic similarity scoring for drift detection | Person 2 |
-| Vector storage | pgvector (Supabase extension) | Latest | Stores and queries embedding vectors | Person 2 |
-| Statistical computation | Python math + numpy | Built-in / 1.x | Z-score calculation, Welford's online algorithm | Person 2 |
-| Regex engine | Python re | Built-in | PII detection patterns, injection signature scanning | Person 2 |
-| HTTP client | httpx | Latest | Async HTTP calls to RTS API and external services | Person 2 |
-| Threat intelligence | Slack Real-Time Search API | Latest | Live injection pattern matching | Person 2 |
-| Testing + eval | pytest | Latest | 30-case evaluation set for risk score validation | Person 2 |
-| Database | Supabase (PostgreSQL 15) | Latest | Token vault, intent store, audit ledger, agent baselines | Person 2 + 3 |
-| Encryption at rest | Supabase built-in encryption | — | Encrypts sensitive values in token vault | Person 2 |
-| Graph analysis | networkx | 3.x | Cross-agent relationship mapping and conspiracy detection | Person 3 |
-| Pipeline scheduling | APScheduler | 3.x | Weekly threat report automation | Person 3 |
-| Slack UI | Slack Block Kit | — | Admin DM notifications, audit log display, interactive buttons | Person 3 + 4 |
-| Architecture diagram | Miro or Figma | — | Submission architecture diagram | Person 4 |
-| Demo recording | Loom or OBS | — | Demo video production and editing | Person 4 |
-| Project management | Notion or Linear | — | Task board, standup tracking, deadline management | Person 4 |
+| Slack app framework | Slack Bolt | 3.x (Node.js) | Event handling, slash commands, button interactions, OAuth | Ahmed |
+| MCP proxy | Custom Node.js + Express | Node 20 LTS | Intercepts all agent tool calls before execution | Ahmed |
+| MCP protocol | Anthropic MCP SDK | Latest | Tool call parsing and protocol handling | Ahmed |
+| Hosting | Railway | — | Deploys all services, environment management | Ahmed |
+| CI/CD | GitHub Actions | — | Automated tests on every PR, blocks merge on failure | Ahmed |
+| Version control | GitHub | — | Shared repository, branching strategy, code review | Ahmed |
+| AI reasoning engine | Python | 3.11+ | Core analysis pipeline language | Omar |
+| LLM | Claude API (claude-sonnet-4-6) | Latest | Intent extraction, drift scoring, injection detection, counterfactual generation | Omar |
+| Structured output | Pydantic | v2 | Validates all Claude API responses into typed Python objects | Omar |
+| Async execution | Python asyncio | Built-in | Parallel pipeline execution, target under 3 seconds | Omar |
+| Vector embeddings | OpenAI text-embedding-3-small | Latest | Semantic similarity scoring for drift detection | Omar |
+| Vector storage | pgvector (Supabase extension) | Latest | Stores and queries embedding vectors | Omar |
+| Statistical computation | Python math + numpy | Built-in / 1.x | Z-score calculation, Welford's online algorithm | Omar |
+| Regex engine | Python re | Built-in | PII detection patterns, injection signature scanning | Omar |
+| HTTP client | httpx | Latest | Async HTTP calls to RTS API and external services | Omar |
+| Threat intelligence | Slack Real-Time Search API | Latest | Live injection pattern matching | Omar |
+| Testing + eval | pytest | Latest | 30-case evaluation set for risk score validation | Omar |
+| Database | Supabase (PostgreSQL 15) | Latest | Token vault, intent store, audit ledger, agent baselines | Omar + 3 |
+| Encryption at rest | Supabase built-in encryption | — | Encrypts sensitive values in token vault | Omar |
+| Graph analysis | networkx | 3.x | Cross-agent relationship mapping and conspiracy detection | Zaid |
+| Pipeline scheduling | APScheduler | 3.x | Weekly threat report automation | Zaid |
+| Slack UI | Slack Block Kit | — | Admin DM notifications, audit log display, interactive buttons | Zaid + 4 |
+| Architecture diagram | Miro or Figma | — | Submission architecture diagram | Kezazz |
+| Demo recording | Loom or OBS | — | Demo video production and editing | Kezazz |
+| Project management | Notion or Linear | — | Task board, standup tracking, deadline management | Kezazz |
 
 ---
 
@@ -969,7 +969,7 @@ CREATE TABLE threat_patterns (
 
 ## API Contracts
 
-### Proxy → Person 2 Pipeline
+### Proxy → Omar Pipeline
 
 ```
 POST /analyze
@@ -1012,11 +1012,11 @@ Response:
 }
 ```
 
-### Person 2 Pipeline → Supabase
+### Omar Pipeline → Supabase
 
-All database writes use the Supabase Python client with the service role key. Row-level security disabled for the pipeline service account. Read access only for the Person 3 slash command service.
+All database writes use the Supabase Python client with the service role key. Row-level security disabled for the pipeline service account. Read access only for the Zaid slash command service.
 
-### Person 3 Slash Commands → Supabase
+### Zaid Slash Commands → Supabase
 
 Read-only service account. All queries use parameterized inputs to prevent SQL injection. Paginated with a maximum of 50 rows per request.
 
@@ -1026,17 +1026,17 @@ Read-only service account. All queries use parameterized inputs to prevent SQL i
 
 ### Week 1 — Foundation
 
-| Day | Person 1 | Person 2 | Person 3 | Person 4 |
+| Day | Ahmed | Omar | Zaid | Kezazz |
 |---|---|---|---|---|
 | 1 | GitHub repo, Railway, Supabase provisioned, Slack app created | Design all Supabase schemas | Design cross-agent monitoring schema | Project description drafted, demo workspace created |
 | 2 | Proxy skeleton intercepts calls, logs to console | Intent extraction call working with Pydantic | Cross-agent scaffold, `/firewall log` skeleton | Fake company persona built, attack message written |
-| 3 | Allow/hold/block routing working, mock Person 2 endpoint | Tokenization pipeline complete, tested on 10 message types | Baseline storage, first agent profiled | Architecture diagram first draft |
-| 4 | Integration contract locked with Person 2 | Token vault, detokenizer, leakage checker complete | `/firewall log` reading from audit table with color coding | Block Kit admin DM notification designed |
+| 3 | Allow/hold/block routing working, mock Omar endpoint | Tokenization pipeline complete, tested on 10 message types | Baseline storage, first agent profiled | Architecture diagram first draft |
+| 4 | Integration contract locked with Omar | Token vault, detokenizer, leakage checker complete | `/firewall log` reading from audit table with color coding | Block Kit admin DM notification designed |
 | **5** | **Full team integration test — clean call passes, obvious attack blocks** | | | |
 
 ### Week 2 — Intelligence
 
-| Day | Person 1 | Person 2 | Person 3 | Person 4 |
+| Day | Ahmed | Omar | Zaid | Kezazz |
 |---|---|---|---|---|
 | 1 | Performance tuning — proxy under 100ms overhead | Drift scorer + injection detector, evaluation set started (15 cases) | `/firewall status`, approve/deny handler wiring | Submission write-up first draft |
 | 2 | Error handling — graceful degradation on timeout | Anomaly detection, z-scores across all 5 signals, cold start phases | Cross-agent conspiracy detection first version | Demo script written and timed |
@@ -1046,11 +1046,11 @@ Read-only service account. All queries use parameterized inputs to prevent SQL i
 
 ### Week 3 — Polish and Submit
 
-| Day | Person 1 | Person 2 | Person 3 | Person 4 |
+| Day | Ahmed | Omar | Zaid | Kezazz |
 |---|---|---|---|---|
 | 1 | Final bug fixes | All 30 evaluation cases passing, latency under 3 seconds | All commands final polish | Submission write-up finalized |
 | 2 | Latency audit | Counterfactual output quality matches demo script | Final integration test | Demo rehearsed 3 times |
-| **3** | **Demo video recorded — Person 4 calls time, everyone stops building** | | | |
+| **3** | **Demo video recorded — Kezazz calls time, everyone stops building** | | | |
 | 4 | Buffer | Buffer | Buffer | Submit. Sandbox access handed to judges. |
 | 5 | Buffer | Buffer | Buffer | Buffer |
 
@@ -1084,11 +1084,11 @@ There are two different things people call "layers." Keep them separate.
 
 1. **Slack workspace** — where messages (legit and malicious) originate.
 2. **Slack agent** — the bot that reads a message and prepares a tool call.
-3. **MCP proxy (Person 1)** — intercepts every tool call before it runs.
-4. **AI reasoning engine (Person 2)** — the pipeline that scores how dangerous the call is.
+3. **MCP proxy (Ahmed)** — intercepts every tool call before it runs.
+4. **AI reasoning engine (Omar)** — the pipeline that scores how dangerous the call is.
 5. **Decision routing** — proxy executes / holds / blocks based on the score.
-6. **Visibility (Person 3)** — slash commands, conspiracy detection, reports.
-7. **Admin interface (Person 4)** — Slack DM with approve/deny buttons.
+6. **Visibility (Zaid)** — slash commands, conspiracy detection, reports.
+7. **Admin interface (Kezazz)** — Slack DM with approve/deny buttons.
 
 Every version of the product has all seven, even if some are thin.
 
@@ -1112,7 +1112,7 @@ proxy intercepts call
   -> /firewall log shows the red entry
 ```
 
-That's 4 of Person 2's 10 components (intent, injection, drift, risk combiner) + counterfactual
+That's 4 of Omar's 10 components (intent, injection, drift, risk combiner) + counterfactual
 + audit log + one slash command. If only this works flawlessly, you have a winning demo.
 
 ### Step 2 — Sort all ~20 components into buckets
@@ -1128,9 +1128,9 @@ That's 4 of Person 2's 10 components (intent, injection, drift, risk combiner) +
 Failure mode: four people build in isolation, integrate in Week 3, nothing fits. Prevent it:
 
 - **Day 1:** lock the proxy<->pipeline JSON contract (input/output schemas). Do this literally first.
-- **Day 1:** Person 1 builds a **mock pipeline** returning hardcoded scores -> the proxy -> DM -> audit -> slash-command path can be built and tested *before any AI exists*.
+- **Day 1:** Ahmed builds a **mock pipeline** returning hardcoded scores -> the proxy -> DM -> audit -> slash-command path can be built and tested *before any AI exists*.
 - **Day 2-3:** thin vertical slice — hardcoded tool call goes proxy -> mock -> BLOCK -> DM -> audit row -> `/firewall log` shows it. **The whole spine runs with a fake brain.**
-- **Then:** Person 2 swaps the mock for real components one at a time. Each swap is small and testable against an already-working pipe.
+- **Then:** Omar swaps the mock for real components one at a time. Each swap is small and testable against an already-working pipe.
 
 > Key move: get the plumbing working end-to-end with a dummy brain by Day 3, then upgrade the
 > brain. You always have a demoable system; you never face a big-bang integration.
@@ -1147,7 +1147,7 @@ Failure mode: four people build in isolation, integrate in Week 3, nothing fits.
 
 ### Context: what it is and why cold-start breaks it
 
-One component inside Person 2's pipeline (Layer 4), separate from injection and drift.
+One component inside Omar's pipeline (Layer 4), separate from injection and drift.
 
 - **Job:** catch attacks that look semantically fine but are behaviorally weird — an agent doing something it's never done, or a normal thing at 100x scale. (Injection/drift catch "malicious instruction"; anomaly catches "abnormal behavior for *this* agent.")
 - **Baseline:** per-agent profile of normal behavior — calls/hour, tool mix, data volume, trigger sources, call sequences.
