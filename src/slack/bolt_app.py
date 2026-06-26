@@ -30,9 +30,9 @@ def _register_handlers(app: AsyncApp) -> None:
     from src.slack.interactions import handle_approve, handle_deny
 
     @app.command("/firewall")
-    async def firewall_command(ack, body, say, client):
+    async def firewall_command(ack, body, respond, client):
         await ack()
-        await handle_firewall_command(body, say, client)
+        await handle_firewall_command(body, respond, client)
 
     @app.action("approve_hold")
     async def approve_hold(body, ack, client):
