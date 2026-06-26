@@ -42,6 +42,19 @@ async def health():
     return {"status": "ok", "service": "agent-firewall-proxy"}
 
 
+@api.get("/debug/env")
+async def debug_env():
+    """Shows which env vars the live process can see (no values, just presence)."""
+    return {
+        "SLACK_BOT_TOKEN": bool(os.environ.get("SLACK_BOT_TOKEN")),
+        "SLACK_SIGNING_SECRET": bool(os.environ.get("SLACK_SIGNING_SECRET")),
+        "SUPABASE_URL": bool(os.environ.get("SUPABASE_URL")),
+        "SUPABASE_SERVICE_ROLE_KEY": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
+        "USE_MOCK_PIPELINE": os.environ.get("USE_MOCK_PIPELINE"),
+        "PORT": os.environ.get("PORT"),
+    }
+
+
 @api.post("/intercept", response_model=InterceptDecision)
 async def intercept_tool_call(request: ToolCallRequest):
     record_id = str(uuid.uuid4())
