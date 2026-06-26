@@ -3,11 +3,12 @@ Slack Bolt async app — lazy initialized so missing env vars don't crash the se
 The health check endpoint works even if Slack credentials aren't configured yet.
 """
 import os
+from typing import Optional
 from slack_bolt.async_app import AsyncApp
 from slack_bolt.adapter.fastapi.async_handler import AsyncSlackRequestHandler
 
-_app: AsyncApp | None = None
-_handler: AsyncSlackRequestHandler | None = None
+_app: Optional[AsyncApp] = None
+_handler: Optional[AsyncSlackRequestHandler] = None
 
 
 def get_handler() -> AsyncSlackRequestHandler:

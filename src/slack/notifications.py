@@ -3,10 +3,11 @@ Admin DM notifications via Slack Block Kit.
 Fires when a call is HELD or BLOCKED.
 """
 import os
+from typing import Optional
 from slack_sdk.web.async_client import AsyncWebClient
 from src.models import ToolCallRequest, AnalysisResponse
 
-_slack_client: AsyncWebClient | None = None
+_slack_client: Optional[AsyncWebClient] = None
 
 
 def get_slack_client() -> AsyncWebClient:
