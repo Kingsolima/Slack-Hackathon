@@ -23,6 +23,12 @@ from src.slack.notifications import send_admin_alert
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Agent Firewall proxy starting...")
+    try:
+        from src.slack.bolt_app import get_handler
+        get_handler()
+        print("Slack Bolt initialized OK")
+    except Exception as e:
+        print(f"[WARN] Slack Bolt init skipped: {e}")
     yield
     print("Agent Firewall proxy shutting down.")
 
@@ -80,11 +86,19 @@ async def slack_events(req: Request):
 
 @api.post("/slack/interactions")
 async def slack_interactions(req: Request):
-    from src.slack.bolt_app import get_handler
-    return await get_handler().handle(req)
+    try:
+        from src.slack.bolt_app import get_handler
+        return await get_handler().handle(req)
+    except Exception as e:
+        print(f"[SLACK INTERACTIONS ERROR] {e}")
+        return JSONResponse(status_code=200, content={})
 
 
 @api.post("/slack/commands")
 async def slack_commands(req: Request):
-    from src.slack.bolt_app import get_handler
-    return await get_handler().handle(req)
+    try:
+        from src.slack.bolt_app import get_handler
+        return await get_handler().handle(req)
+    except Exception as e:
+        print(f"[SLACK COMMANDS ERROR] {e}")
+        return JSONResponse(status_code=200, content={"text": f"Internal error: {e}"})
