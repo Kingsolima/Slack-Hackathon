@@ -4,6 +4,7 @@ slack-bolt==1.28.0
 slack-sdk==3.42.0
 supabase==2.31.0
 httpx==0.28.1
+aiohttp
 pydantic==2.13.4
 python-dotenv==1.2.2
 pytest==9.1.1
