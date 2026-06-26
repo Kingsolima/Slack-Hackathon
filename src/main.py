@@ -70,6 +70,10 @@ async def _write_and_notify(request, analysis, record_id):
 
 @api.post("/slack/events")
 async def slack_events(req: Request):
+    body = await req.json()
+    # Slack sends this to verify the URL — must respond with challenge value immediately
+    if body.get("type") == "url_verification":
+        return JSONResponse({"challenge": body["challenge"]})
     from src.slack.bolt_app import get_handler
     return await get_handler().handle(req)
 
