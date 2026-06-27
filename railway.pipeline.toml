@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+# Reasoning engine (AI pipeline). Deploy as a SECOND Railway service pointed at
+# this repo, with its config path set to this file (Service Settings → Config-as-code).
+# Set ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY on this service.
+# Then on the proxy service set OMAR_PIPELINE_URL to this service's URL.
+startCommand = "uvicorn src.pipeline.app:pipeline_api --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "on_failure"
