@@ -50,7 +50,7 @@ async def debug_env():
         "SLACK_SIGNING_SECRET": bool(os.environ.get("SLACK_SIGNING_SECRET")),
         "SUPABASE_URL": bool(os.environ.get("SUPABASE_URL")),
         "SUPABASE_SERVICE_ROLE_KEY": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
-        "USE_MOCK_PIPELINE": os.environ.get("USE_MOCK_PIPELINE"),
+        "OMAR_PIPELINE_URL": os.environ.get("OMAR_PIPELINE_URL"),
         "PORT": os.environ.get("PORT"),
     }
 
