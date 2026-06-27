@@ -26,7 +26,7 @@ class AnomalySignals(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
-    """What Omar's pipeline returns (or our mock)."""
+    """What the reasoning engine returns to the proxy."""
     risk_score: float
     decision: str  # allow | hold | block
     drift_score: float
