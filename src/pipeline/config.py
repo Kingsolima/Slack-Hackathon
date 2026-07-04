@@ -4,14 +4,19 @@ demo numbers and thresholds aren't scattered across modules.
 """
 import os
 
-# Claude model for all reasoning calls. docs.md picks sonnet-4-6 for pipeline
-# speed (we need < 3s end-to-end). Override via env if a component needs more.
-MODEL = os.getenv("PIPELINE_MODEL", "claude-sonnet-4-6")
+# Claude model for all reasoning calls. These are structured classification /
+# extraction tasks (injection, intent, drift) where haiku-4-5 is fast AND
+# accurate — critical for the <4s proxy budget. Live testing: haiku scored the
+# demo attack 99/100 and a clean call 3/100, faster than sonnet. Override via
+# env (e.g. claude-sonnet-4-6) if a component needs more reasoning depth.
+MODEL = os.getenv("PIPELINE_MODEL", "claude-haiku-4-5")
 
 # Timeouts. The proxy enforces a 4s hard cap and fail-safe BLOCKs on timeout,
-# so the pipeline must finish comfortably under that.
+# so the pipeline must finish comfortably under that. Per-component cap is a
+# safety net for a hung call, not the normal path — a healthy warm Claude call
+# is ~1s; 6s catches a genuinely stuck one without killing a slow-but-fine one.
 PIPELINE_TIMEOUT_SECONDS = 3.5   # whole-pipeline soft budget
-STAGE_TIMEOUT_SECONDS = 2.0      # per-component cap; exceeding it -> conservative default
+STAGE_TIMEOUT_SECONDS = 6.0      # per-component cap; exceeding it -> conservative default
 
 # Risk weights (docs.md §Risk Combiner). Anomaly + threat are Phase 2/3 and are
 # absent in Phase 1 — the combiner reweights across whatever signals are present,

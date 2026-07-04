@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import src.pipeline.bootstrap  # noqa: F401 — trust OS cert store before any TLS call
+
 from fastapi import FastAPI
 
 from src.models import AnalysisResponse, ToolCallRequest
