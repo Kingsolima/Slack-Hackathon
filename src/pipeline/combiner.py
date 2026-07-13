@@ -37,8 +37,10 @@ def combine_risk(
     risk = round(risk, 1)
 
     # Override: an unambiguous injection always blocks (docs.md §Override rules).
+    # Floor the risk to the injection level so a block driven by a near-certain
+    # injection isn't reported with a misleadingly low blended score.
     if injection_score > INJECTION_OVERRIDE_THRESHOLD:
-        return risk, "block"
+        return max(risk, injection_score), "block"
     if risk > HOLD_MAX:
         return risk, "block"
     if risk > ALLOW_MAX:
