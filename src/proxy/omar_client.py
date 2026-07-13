@@ -16,7 +16,24 @@ TIMEOUT_SECONDS = float(os.getenv("PIPELINE_TIMEOUT_SECONDS", "4.0"))
 RETRY_TIMEOUT_SECONDS = float(os.getenv("PIPELINE_RETRY_TIMEOUT_SECONDS", "2.0"))
 
 
+def _inprocess_enabled() -> bool:
+    return PIPELINE_URL.strip().lower() in ("", "inprocess", "in-process", "local")
+
+
 async def analyze(request: ToolCallRequest) -> AnalysisResponse:
+    # In-process mode: run the reasoning pipeline inside this same process instead
+    # of calling a separate HTTP service. Enabled when OMAR_PIPELINE_URL is unset
+    # or "inprocess". Cheapest deploy — one service, no inter-service network, and
+    # no HTTP timeout to tune. Falls back to a fail-safe BLOCK if the pipeline errors.
+    if _inprocess_enabled():
+        try:
+            import src.pipeline.bootstrap  # noqa: F401 — trust OS cert store before TLS
+            from src.pipeline.orchestrator import analyze as run_pipeline
+
+            return await run_pipeline(request)
+        except Exception:
+            return _fail_safe_block(request)
+
     payload = request.model_dump(mode="json")
 
     async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
