@@ -12,8 +12,8 @@ import httpx
 from src.models import AnalysisResponse, ToolCallRequest
 
 PIPELINE_URL = os.getenv("OMAR_PIPELINE_URL", "http://localhost:8001")
-TIMEOUT_SECONDS = 4.0
-RETRY_TIMEOUT_SECONDS = 2.0
+TIMEOUT_SECONDS = float(os.getenv("PIPELINE_TIMEOUT_SECONDS", "4.0"))
+RETRY_TIMEOUT_SECONDS = float(os.getenv("PIPELINE_RETRY_TIMEOUT_SECONDS", "2.0"))
 
 
 async def analyze(request: ToolCallRequest) -> AnalysisResponse:
