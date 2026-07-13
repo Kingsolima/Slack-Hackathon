@@ -1,0 +1,270 @@
+<title>Agent Firewall — System Architecture</title>
+<style>
+  :root {
+    --ground:#E9EDF4; --surface:#FFFFFF; --surface-2:#F3F6FB;
+    --ink:#0F1729; --ink-soft:#48546C; --line:#D2DAE8;
+    --accent:#0EA5E9; --accent-soft:rgba(14,165,233,.14);
+    --slack:#5B60E3; --slack-tint:rgba(91,96,227,.07); --slack-line:rgba(91,96,227,.30);
+    --proxy:#0D9488; --proxy-tint:rgba(13,148,136,.07); --proxy-line:rgba(13,148,136,.30);
+    --engine:#7C3AED; --engine-tint:rgba(124,58,237,.06); --engine-line:rgba(124,58,237,.28);
+    --allow:#059669; --hold:#D97706; --block:#DC2626;
+    --shadow:0 1px 2px rgba(15,23,41,.04), 0 6px 20px rgba(15,23,41,.06);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#080B12; --surface:#111A2B; --surface-2:#0D1523;
+      --ink:#E7ECF7; --ink-soft:#94A2BC; --line:#22304C;
+      --accent:#38BDF8; --accent-soft:rgba(56,189,248,.16);
+      --slack:#8A90F5; --slack-tint:rgba(138,144,245,.10); --slack-line:rgba(138,144,245,.34);
+      --proxy:#2DD4BF; --proxy-tint:rgba(45,212,191,.09); --proxy-line:rgba(45,212,191,.32);
+      --engine:#A78BFA; --engine-tint:rgba(167,139,250,.09); --engine-line:rgba(167,139,250,.32);
+      --allow:#34D399; --hold:#FBBF24; --block:#F87171;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.34);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#E9EDF4; --surface:#FFFFFF; --surface-2:#F3F6FB;
+    --ink:#0F1729; --ink-soft:#48546C; --line:#D2DAE8;
+    --accent:#0EA5E9; --accent-soft:rgba(14,165,233,.14);
+    --slack:#5B60E3; --slack-tint:rgba(91,96,227,.07); --slack-line:rgba(91,96,227,.30);
+    --proxy:#0D9488; --proxy-tint:rgba(13,148,136,.07); --proxy-line:rgba(13,148,136,.30);
+    --engine:#7C3AED; --engine-tint:rgba(124,58,237,.06); --engine-line:rgba(124,58,237,.28);
+    --allow:#059669; --hold:#D97706; --block:#DC2626;
+    --shadow:0 1px 2px rgba(15,23,41,.04), 0 6px 20px rgba(15,23,41,.06);
+  }
+  :root[data-theme="dark"]{
+    --ground:#080B12; --surface:#111A2B; --surface-2:#0D1523;
+    --ink:#E7ECF7; --ink-soft:#94A2BC; --line:#22304C;
+    --accent:#38BDF8; --accent-soft:rgba(56,189,248,.16);
+    --slack:#8A90F5; --slack-tint:rgba(138,144,245,.10); --slack-line:rgba(138,144,245,.34);
+    --proxy:#2DD4BF; --proxy-tint:rgba(45,212,191,.09); --proxy-line:rgba(45,212,191,.32);
+    --engine:#A78BFA; --engine-tint:rgba(167,139,250,.09); --engine-line:rgba(167,139,250,.32);
+    --allow:#34D399; --hold:#FBBF24; --block:#F87171;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.34);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;line-height:1.5;}
+  .wrap{max-width:1060px;margin:0 auto;padding:40px 24px 64px;}
+
+  .masthead{display:flex;align-items:baseline;justify-content:space-between;
+    flex-wrap:wrap;gap:8px;margin-bottom:22px;}
+  .masthead h1{font-size:clamp(22px,3.4vw,30px);margin:0;letter-spacing:-.02em;
+    font-weight:700;text-wrap:balance;}
+  .masthead p{margin:2px 0 0;color:var(--ink-soft);font-size:14px;max-width:60ch;}
+  .stamp{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:5px 11px;white-space:nowrap;}
+
+  /* security frame */
+  .frame{position:relative;border:1.5px dashed var(--line);border-radius:22px;
+    padding:34px 26px 26px;background:linear-gradient(180deg,var(--surface-2),transparent 220px);}
+  .frame-tag{position:absolute;top:-9px;left:24px;background:var(--ground);padding:0 10px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);}
+  .frame-tag.br{top:auto;left:auto;bottom:-9px;right:24px;}
+
+  .stack{display:flex;flex-direction:column;align-items:stretch;gap:0;}
+
+  /* nodes / bands */
+  .node{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);padding:16px 18px;}
+  .user{align-self:center;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:999px;max-width:440px;}
+  .user svg{flex:0 0 auto}
+  .user b{font-size:14.5px}
+  .user span{display:block;color:var(--ink-soft);font-size:12px}
+
+  .band{border-radius:18px;border:1px solid var(--zline);background:var(--ztint);padding:16px;}
+  .band--slack{--zc:var(--slack);--zline:var(--slack-line);--ztint:var(--slack-tint);}
+  .band--proxy{--zc:var(--proxy);--zline:var(--proxy-line);--ztint:var(--proxy-tint);}
+  .band--engine{--zc:var(--engine);--zline:var(--engine-line);--ztint:var(--engine-tint);}
+  .band-head{display:flex;align-items:center;gap:10px;margin:2px 4px 14px;}
+  .dot{width:10px;height:10px;border-radius:3px;background:var(--zc);flex:0 0 auto;box-shadow:0 0 0 4px color-mix(in srgb,var(--zc) 18%,transparent);}
+  .band-head .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--zc);font-weight:600;}
+  .band-head .meta{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
+
+  .grid{display:grid;gap:12px;}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  .g3{grid-template-columns:repeat(3,1fr);}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 14px;
+    box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .15s ease;}
+  .card:hover{transform:translateY(-2px);}
+  .card h3{margin:0 0 4px;font-size:13.5px;font-weight:650;letter-spacing:-.01em;}
+  .card p{margin:0;font-size:12.5px;color:var(--ink-soft);}
+  .card .tags{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px;}
+  .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--ink-soft);
+    background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;}
+  .kv{font-family:var(--mono);font-size:11px;color:var(--zc,var(--accent));}
+
+  /* connectors */
+  .flow{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0;}
+  .flow .line{width:2px;height:16px;background:linear-gradient(var(--accent),transparent);}
+  .flow .cap{font-family:var(--mono);font-size:11px;color:var(--ink-soft);
+    background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);
+    color:var(--accent);border-radius:999px;padding:3px 12px;}
+  .flow .arrow{color:var(--accent);font-size:13px;line-height:0;}
+
+  /* engine row with side rail */
+  .enginewrap{display:grid;grid-template-columns:1fr 210px;gap:14px;align-items:stretch;}
+  .rail{display:flex;flex-direction:column;gap:12px;}
+  .side{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:13px 14px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;}
+  .side .top{display:flex;align-items:center;gap:9px;}
+  .side h3{margin:0;font-size:13px;font-weight:650;}
+  .side p{margin:0;font-size:11.5px;color:var(--ink-soft);}
+  .side .tags{display:flex;flex-wrap:wrap;gap:5px;}
+
+  /* decisions */
+  .decisions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .dec{border:1px solid var(--line);border-radius:12px;background:var(--surface);
+    box-shadow:var(--shadow);overflow:hidden;}
+  .dec .bar{height:5px;background:var(--dc);}
+  .dec .body{padding:13px 14px;}
+  .dec .row{display:flex;align-items:center;gap:8px;}
+  .dec b{font-size:14px;letter-spacing:.02em;}
+  .dec .pill{margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:600;
+    color:var(--dc);background:color-mix(in srgb,var(--dc) 13%,transparent);
+    border:1px solid color-mix(in srgb,var(--dc) 40%,transparent);border-radius:999px;padding:2px 8px;}
+  .dec p{margin:7px 0 0;font-size:12px;color:var(--ink-soft);}
+  .dec--allow{--dc:var(--allow);} .dec--hold{--dc:var(--hold);} .dec--block{--dc:var(--block);}
+
+  .legend{margin-top:20px;display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;}
+  .swatch{width:11px;height:11px;border-radius:3px;}
+
+  @media (max-width:720px){
+    .enginewrap{grid-template-columns:1fr;}
+    .g3,.g2,.decisions{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion:reduce){ .card{transition:none;} }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <h1>Agent Firewall</h1>
+      <p>A semantic security layer that intercepts every Slack-agent tool call, verifies it against the user's real intent with Claude, and blocks hijacked actions before they execute.</p>
+    </div>
+    <div class="stamp">System Architecture</div>
+  </header>
+
+  <div class="frame">
+    <span class="frame-tag">Security &amp; Compliance &middot; every action logged &amp; auditable</span>
+    <span class="frame-tag br">SOC 2 &middot; ISO 27001 &middot; full audit trail</span>
+
+    <div class="stack">
+
+      <!-- USER -->
+      <div class="node user">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/>
+        </svg>
+        <div><b>User &nbsp;·&nbsp; or Attacker</b><span>sends a message in Slack — legitimate request or hidden prompt injection</span></div>
+      </div>
+
+      <div class="flow"><div class="line"></div><span class="cap">message</span><div class="arrow">▼</div></div>
+
+      <!-- SLACK -->
+      <div class="band band--slack">
+        <div class="band-head"><span class="dot"></span><span class="lbl">The Client · Slack</span><span class="meta">Slack Bolt · OAuth · Events API</span></div>
+        <div class="grid g2">
+          <div class="card">
+            <h3>Slack surface</h3>
+            <p>Where messages arrive and admins act.</p>
+            <div class="tags"><span class="tag">@mentions</span><span class="tag">/firewall</span><span class="tag">Block Kit DM</span></div>
+          </div>
+          <div class="card">
+            <h3>Slack AI agent</h3>
+            <p>Reads the message and prepares a tool call — it can't tell a real request from an injection.</p>
+            <div class="tags"><span class="tag">db_read</span><span class="tag">http_post</span><span class="tag">message_send</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow"><div class="line"></div><span class="cap">tool call intercepted</span><div class="arrow">▼</div></div>
+
+      <!-- PROXY -->
+      <div class="band band--proxy">
+        <div class="band-head"><span class="dot"></span><span class="lbl">Interception Proxy · FastAPI</span><span class="meta">port :8000 · POST /intercept</span></div>
+        <div class="grid g3">
+          <div class="card"><h3>Intercept</h3><p>Catches every tool call before it runs and packages full context.</p></div>
+          <div class="card"><h3>Route decision</h3><p>Executes, holds, or cancels the call based on the engine's verdict.</p></div>
+          <div class="card"><h3>Fail-safe</h3><p>If the engine is unreachable it <b>BLOCKs</b> — a broken brain is never a green light.</p></div>
+        </div>
+      </div>
+
+      <div class="flow"><div class="line"></div><span class="cap">HTTP POST /analyze</span><div class="arrow">▼</div></div>
+
+      <!-- ENGINE + RAIL -->
+      <div class="enginewrap">
+        <div class="band band--engine">
+          <div class="band-head"><span class="dot"></span><span class="lbl">AI Reasoning Engine · FastAPI</span><span class="meta">port :8001 · async, parallel</span></div>
+          <div class="grid g3">
+            <div class="card"><h3>Injection detector</h3><p>Regex signatures + Claude semantic + source trust.</p><div class="tags"><span class="kv">score 0–100</span></div></div>
+            <div class="card"><h3>Intent extraction</h3><p>Captures what the user really wanted, stored per session.</p><div class="tags"><span class="tag">→ Supabase</span></div></div>
+            <div class="card"><h3>Drift scorer</h3><p>Claude compares the action to that stored intent.</p><div class="tags"><span class="kv">consistency</span></div></div>
+            <div class="card"><h3>Risk combiner</h3><p>Weighted blend → allow / hold / block, with injection override.</p></div>
+            <div class="card"><h3>Counterfactual</h3><p>Plain-English "what would have happened" for the admin.</p></div>
+            <div class="card"><h3>Orchestrator</h3><p>Async staging, per-stage timeouts, graceful degradation.</p></div>
+          </div>
+        </div>
+        <div class="rail">
+          <div class="side">
+            <div class="top">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--engine)" stroke-width="1.7"><path d="M4 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.7-1.3A4.5 4.5 0 0 1 18 15Z"/></svg>
+              <h3>Claude API</h3>
+            </div>
+            <p>Powers injection, intent, drift &amp; counterfactual reasoning.</p>
+            <div class="tags"><span class="tag">claude-haiku-4-5</span></div>
+          </div>
+          <div class="side">
+            <div class="top">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--proxy)" stroke-width="1.7"><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>
+              <h3>Supabase</h3>
+            </div>
+            <p>Persistent store beneath every layer.</p>
+            <div class="tags"><span class="tag">intent_store</span><span class="tag">audit_log</span><span class="tag">baselines</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow"><div class="line"></div><span class="cap">risk score + decision</span><div class="arrow">▼</div></div>
+
+      <!-- DECISIONS -->
+      <div class="decisions">
+        <div class="dec dec--allow"><div class="bar"></div><div class="body">
+          <div class="row"><b>ALLOW</b><span class="pill">0–30</span></div>
+          <p>Executes normally. Logged green. Invisible to the user. <em>Clean calls: 3–8/100.</em></p>
+        </div></div>
+        <div class="dec dec--hold"><div class="bar"></div><div class="body">
+          <div class="row"><b>HOLD</b><span class="pill">31–70</span></div>
+          <p>Suspended. Admin gets a DM with approve / deny buttons.</p>
+        </div></div>
+        <div class="dec dec--block"><div class="bar"></div><div class="body">
+          <div class="row"><b>BLOCK</b><span class="pill">71–100</span></div>
+          <p>Cancelled before any data moves. Admin notified. <em>Attacks: 98–100/100.</em></p>
+        </div></div>
+      </div>
+
+      <div class="flow"><div class="arrow">▲</div><span class="cap">admin DM + audit record</span><div class="line" style="background:linear-gradient(transparent,var(--accent))"></div></div>
+
+      <!-- ADMIN -->
+      <div class="node user" style="max-width:520px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><path d="M12 3l7 3v5c0 4.4-3 8-7 10-4-2-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <div><b>Admin</b><span>reads the counterfactual — "847 customer emails would have been exfiltrated" — and approves or denies in one tap</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--slack)"></span>Slack layer</span>
+    <span><span class="swatch" style="background:var(--proxy)"></span>Proxy layer</span>
+    <span><span class="swatch" style="background:var(--engine)"></span>Reasoning engine</span>
+    <span><span class="swatch" style="background:var(--allow)"></span>allow</span>
+    <span><span class="swatch" style="background:var(--hold)"></span>hold</span>
+    <span><span class="swatch" style="background:var(--block)"></span>block</span>
+  </div>
+</div>
