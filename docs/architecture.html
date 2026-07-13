@@ -1,4 +1,4 @@
-<title>Agent Firewall — System Architecture</title>
+<title>Agent Firewall &middot; System Architecture</title>
 <style>
   :root {
     --ground:#E9EDF4; --surface:#FFFFFF; --surface-2:#F3F6FB;
@@ -152,7 +152,7 @@
 
   <div class="frame">
     <span class="frame-tag">Security &amp; Compliance &middot; every action logged &amp; auditable</span>
-    <span class="frame-tag br">SOC 2 &middot; ISO 27001 &middot; full audit trail</span>
+    <span class="frame-tag br">Complete audit trail &middot; every decision logged &amp; queryable</span>
 
     <div class="stack">
 
@@ -161,7 +161,7 @@
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7">
           <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/>
         </svg>
-        <div><b>User &nbsp;·&nbsp; or Attacker</b><span>sends a message in Slack — legitimate request or hidden prompt injection</span></div>
+        <div><b>User &nbsp;·&nbsp; or Attacker</b><span>sends a message in Slack: a legitimate request or a hidden prompt injection</span></div>
       </div>
 
       <div class="flow"><div class="line"></div><span class="cap">message</span><div class="arrow">▼</div></div>
@@ -177,7 +177,7 @@
           </div>
           <div class="card">
             <h3>Slack AI agent</h3>
-            <p>Reads the message and prepares a tool call — it can't tell a real request from an injection.</p>
+            <p>Reads the message and prepares a tool call, unable to tell a real request from an injection.</p>
             <div class="tags"><span class="tag">db_read</span><span class="tag">http_post</span><span class="tag">message_send</span></div>
           </div>
         </div>
@@ -191,7 +191,7 @@
         <div class="grid g3">
           <div class="card"><h3>Intercept</h3><p>Catches every tool call before it runs and packages full context.</p></div>
           <div class="card"><h3>Route decision</h3><p>Executes, holds, or cancels the call based on the engine's verdict.</p></div>
-          <div class="card"><h3>Fail-safe</h3><p>If the engine is unreachable it <b>BLOCKs</b> — a broken brain is never a green light.</p></div>
+          <div class="card"><h3>Fail-safe</h3><p>If the engine is unreachable it <b>BLOCKs</b>. A broken brain is never a green light.</p></div>
         </div>
       </div>
 
@@ -253,7 +253,7 @@
       <!-- ADMIN -->
       <div class="node user" style="max-width:520px">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><path d="M12 3l7 3v5c0 4.4-3 8-7 10-4-2-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
-        <div><b>Admin</b><span>reads the counterfactual — "847 customer emails would have been exfiltrated" — and approves or denies in one tap</span></div>
+        <div><b>Admin</b><span>reads the counterfactual ("847 customer emails would have been exfiltrated") and approves or denies in one tap</span></div>
       </div>
 
     </div>
