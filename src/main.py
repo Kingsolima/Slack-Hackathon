@@ -13,11 +13,15 @@ load_dotenv()
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from zoneinfo import ZoneInfo
 
 from src.models import ToolCallRequest, InterceptDecision
 from src.proxy.omar_client import analyze
 from src.db.client import write_audit_record
 from src.slack.notifications import send_admin_alert
+from src.slack.reports import post_weekly_threat_report
 
 
 @asynccontextmanager
@@ -29,7 +33,45 @@ async def lifespan(app: FastAPI):
         print("Slack Bolt initialized OK")
     except Exception as e:
         print(f"[WARN] Slack Bolt init skipped: {e}")
+    scheduler = None
+    try:
+        missing_report_config = [
+            name for name in (
+                "SLACK_BOT_TOKEN",
+                "SECURITY_CHANNEL_ID",
+                "SUPABASE_URL",
+                "SUPABASE_SERVICE_ROLE_KEY",
+            )
+            if not os.getenv(name)
+        ]
+        if missing_report_config:
+            print(
+                "[WARN] Weekly threat report configuration incomplete; "
+                "scheduled runs will skip until configured: "
+                + ", ".join(missing_report_config)
+            )
+        report_timezone = ZoneInfo(
+            os.getenv("FIREWALL_REPORT_TIMEZONE", "America/Toronto")
+        )
+        scheduler = AsyncIOScheduler(timezone=report_timezone)
+        scheduler.add_job(
+            post_weekly_threat_report,
+            CronTrigger(
+                day_of_week="mon", hour=9, minute=0, timezone=report_timezone
+            ),
+            id="weekly_threat_report",
+            replace_existing=True,
+        )
+        scheduler.start()
+        print(f"Weekly threat report scheduled for Mondays at 09:00 {report_timezone}")
+    except Exception as e:
+        print(f"[WARN] Weekly threat report scheduler skipped: {e}")
     yield
+    if scheduler is not None:
+        try:
+            scheduler.shutdown(wait=False)
+        except Exception as e:
+            print(f"[WARN] Weekly threat report scheduler shutdown failed: {e}")
     print("Agent Firewall proxy shutting down.")
 
 
